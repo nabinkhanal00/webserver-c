@@ -47,6 +47,7 @@ void handle_connection(int);
 void *worker(void *);
 
 pthread_mutex_t queue_lock;
+pthread_cond_t queue_cond;
 Queue *q;
 
 int main() {
@@ -84,6 +85,9 @@ int main() {
     if (pthread_mutex_init(&queue_lock, NULL) < 0) {
         err_n_die("Unable to create mutex lock.");
     }
+    if (pthread_cond_init(&queue_cond, NULL) < 0) {
+        err_n_die("Unable to create mutex lock.");
+    }
     for (int i = 0; i < no_of_cores; i++) {
         if (pthread_create(&threads[i], NULL, worker, NULL) < 0) {
             err_n_die("Unable to create threads.");
@@ -99,12 +103,20 @@ int main() {
         if (connfd == -1) {
             err_n_die("Invalid Connection ID.");
             continue;
-        } else {
         }
         inet_ntop(AF_INET, &addr, address, MAXLINE);
         fprintf(stdout, "Connected to: %s\n", address);
+        if (pthread_mutex_lock(&queue_lock) < 0) {
+            err_n_die("Locking failed");
+        }
         enqueue(q, connfd);
+        if (pthread_mutex_unlock(&queue_lock) < 0) {
+            err_n_die("Unlocking failed");
+        }
+        pthread_cond_signal(&queue_cond);
     }
+    pthread_mutex_destroy(&queue_lock);
+    pthread_cond_destroy(&queue_cond);
 }
 
 void *worker(void *args) {
@@ -113,17 +125,14 @@ void *worker(void *args) {
         if (pthread_mutex_lock(&queue_lock) < 0) {
             err_n_die("Locking failed");
         }
-        int empty = is_empty(q);
-        if (empty) {
-            if (pthread_mutex_unlock(&queue_lock) < 0) {
+        while (is_empty(q)) {
+            if (pthread_cond_wait(&queue_cond, &queue_lock) < 0) {
                 err_n_die("Unlocking failed");
             }
-            continue;
-        } else {
-            connfd = dequeue(q);
-            if (pthread_mutex_unlock(&queue_lock) < 0) {
-                err_n_die("Unlocking failed");
-            }
+        }
+        connfd = dequeue(q);
+        if (pthread_mutex_unlock(&queue_lock) < 0) {
+            err_n_die("Unlocking failed");
         }
         handle_connection(connfd);
     }
@@ -150,7 +159,6 @@ void handle_connection(int connfd) {
         err_n_die("read error");
     }
     snprintf((char *)buff, sizeof(buff), "HTTP/1.0 200 OK\r\n\r\nHello");
-    sleep(1);
     write(connfd, (char *)buff, strlen((char *)buff));
     close(connfd);
 }
