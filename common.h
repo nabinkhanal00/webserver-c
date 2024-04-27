@@ -11,7 +11,7 @@
 
 #define MAXLINE 4096
 #define MAX_CONNECTIONS 10
-#define SERVER_PORT 5555
+#define SERVER_PORT 4444
 #define SA struct sockaddr
 
 void err_n_die(const char* , ...);

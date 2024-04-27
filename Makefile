@@ -9,7 +9,7 @@ INCLUDES = -I./include
 
 # Source files for client and server
 CLIENT_SRCS = client.c common.c
-SERVER_SRCS = server.c common.c
+SERVER_SRCS = server.c queue.c common.c
 
 # Object files for client and server
 CLIENT_OBJS = $(CLIENT_SRCS:%.c=obj/%.o)
