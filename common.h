@@ -9,6 +9,17 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+
+#ifdef _WIN32
+#include <windows.h>
+#elif MACOS
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#else
+#include <unistd.h>
+#endif
+
+
 #define MAXLINE 4096
 #define MAX_CONNECTIONS 10
 #define SERVER_PORT 4444
@@ -16,3 +27,4 @@
 
 void err_n_die(const char* , ...);
 char *bin2hex(const unsigned char* , size_t );
+int get_no_cores();
