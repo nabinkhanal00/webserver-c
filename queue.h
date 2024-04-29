@@ -2,20 +2,21 @@
 #define QUEUE_H
 
 #include "common.h"
-typedef struct Node {
+typedef struct QueueNode {
     int value;
-    struct Node* next;
-} Node;
+    struct QueueNode* next;
+} QueueNode;
 
 typedef struct {
-    Node* front;
-    Node* rear;
+    QueueNode* front;
+    QueueNode* rear;
     int size;
 } Queue;
 
-Queue* create_queue();
-void enqueue(Queue*, int);
-int dequeue(Queue*);
-int is_empty(Queue*);
-void print_queue(Queue*);
+Queue* queue_create();
+void queue_enqueue(Queue*, int);
+int queue_dequeue(Queue*);
+int queue_is_empty(Queue*);
+void queue_print(Queue*);
+void queue_destroy(Queue*);
 #endif

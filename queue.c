@@ -2,7 +2,7 @@
 
 #include "queue.h"
 
-Queue* create_queue() {
+Queue* queue_create() {
     Queue* q = (Queue*)malloc(sizeof(Queue));
     if (q == NULL) {
         err_n_die("memory allocation failed while creating queue.");
@@ -14,28 +14,28 @@ Queue* create_queue() {
     return q;
 }
 
-void enqueue(Queue* q, int value) {
-    Node* newNode = (Node*)malloc(sizeof(Node));
-    if (newNode == NULL) {
+void queue_enqueue(Queue* q, int value) {
+    QueueNode* new_node = (QueueNode*)malloc(sizeof(QueueNode));
+    if (new_node == NULL) {
         err_n_die("memory allocation failed while creating node.");
     }
-    newNode->value = value;
-    newNode->next = NULL;
-    if (is_empty(q)) {
-        q->front = newNode;
-        q->rear = newNode;
+    new_node->value = value;
+    new_node->next = NULL;
+    if (queue_is_empty(q)) {
+        q->front = new_node;
+        q->rear = new_node;
     } else {
-        q->rear->next = newNode;
-        q->rear = newNode;
+        q->rear->next = new_node;
+        q->rear = new_node;
     }
     q->size++;
 }
 
-int dequeue(Queue* q) {
-    if (is_empty(q)) {
+int queue_dequeue(Queue* q) {
+    if (queue_is_empty(q)) {
         err_n_die("trying to dequeue from empty queue.");
     }
-    Node* temp = q->front;
+    QueueNode* temp = q->front;
     int value = temp->value;
     q->front = q->front->next;
     if (q->front == NULL) {
@@ -46,9 +46,9 @@ int dequeue(Queue* q) {
     return value;
 }
 
-int is_empty(Queue* q) { return q->front == NULL; }
+int queue_is_empty(Queue* q) { return q->front == NULL; }
 
-void print_queue(Queue* q) {
+void queue_print(Queue* q) {
     if (q == NULL) {
         return;
     }

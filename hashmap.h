@@ -4,25 +4,24 @@
 #define HASHMAP_INITIAL_SIZE 16
 #define LOAD_FACTOR 2
 
-
-typedef struct Node {
+typedef struct HashmapNode{
     char* value;
     char* key;
-    struct Node* next;
-} Node;
+    struct HashmapNode* next;
+} HashmapNode;
 
-typedef struct hashmap {
+typedef struct Hashmap {
     unsigned int capacity;
     unsigned int size;
-    struct Node** bucket;
-} hashmap;
+    struct HashmapNode** bucket;
+} Hashmap;
 
-hashmap* hashmap_create();
-int hashmap_size(hashmap*);
-void hashmap_insert(hashmap*, const char*, const char*);
-const char* hashmap_get(hashmap*, const char*);
-void hashmap_remove(hashmap*, const char*);
-void hashmap_print(hashmap*);
-void hashmap_destroy(hashmap* );
+Hashmap* hashmap_create();
+int hashmap_size(Hashmap*);
+void hashmap_insert(Hashmap*, const char*, const char*);
+const char* hashmap_get(Hashmap*, const char*);
+void hashmap_remove(Hashmap*, const char*);
+void hashmap_print(Hashmap*);
+void hashmap_destroy(Hashmap*);
 
 #endif

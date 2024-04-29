@@ -2,29 +2,42 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common.h"
 #include "hashmap.h"
 
-void remap(hashmap*);
+void remap(Hashmap*);
 unsigned int find_hash(const char*, unsigned int);
 
-hashmap* hashmap_create() {
-    hashmap* map = malloc(sizeof(hashmap));
-    map->bucket = malloc(HASHMAP_INITIAL_SIZE * sizeof(Node*));
+Hashmap* hashmap_create() {
+    Hashmap* map = malloc(sizeof(Hashmap));
+    if (map == NULL) {
+        err_n_die("Memory allocation failed while creating map.");
+    }
+    map->bucket = malloc(HASHMAP_INITIAL_SIZE * sizeof(HashmapNode*));
+    if (map->bucket == NULL) {
+        err_n_die("Memory allocation failed while creating bucket.");
+    }
     map->size = 0;
     map->capacity = HASHMAP_INITIAL_SIZE;
     return map;
 }
 
-void hashmap_insert(hashmap* map, const char* key, const char* value) {
+void hashmap_insert(Hashmap* map, const char* key, const char* value) {
     unsigned int position = find_hash(key, map->capacity);
     char* k = malloc(strlen(key));
     char* v = malloc(strlen(value));
+    if (k == NULL || v == NULL) {
+        err_n_die("Memory allocation failed while copying key and value.");
+    }
     strcpy(v, value);
     strcpy(k, key);
 
-    Node* current = map->bucket[position];
+    HashmapNode* current = map->bucket[position];
     if (current == NULL) {
-        Node* new_node = (Node*)malloc(sizeof(Node));
+        HashmapNode* new_node = (HashmapNode*)malloc(sizeof(HashmapNode));
+        if (new_node == NULL) {
+            err_n_die("Memory allocation failed while creating node.");
+        }
         new_node->key = k;
         new_node->value = v;
         new_node->next = NULL;
@@ -32,7 +45,7 @@ void hashmap_insert(hashmap* map, const char* key, const char* value) {
         map->size++;
     } else {
         int found = 0;
-        Node* previous = NULL;
+        HashmapNode* previous = NULL;
         while (current != NULL) {
             if (!strcmp(current->key, key)) {
                 found = 1;
@@ -46,7 +59,10 @@ void hashmap_insert(hashmap* map, const char* key, const char* value) {
             }
         }
         if (!found) {
-            Node* new_node = (Node*)malloc(sizeof(Node));
+            HashmapNode* new_node = (HashmapNode*)malloc(sizeof(HashmapNode));
+            if (new_node == NULL) {
+                err_n_die("Memory allocation failed while creating node.");
+            }
             new_node->key = k;
             new_node->value = v;
             new_node->next = NULL;
@@ -60,25 +76,31 @@ void hashmap_insert(hashmap* map, const char* key, const char* value) {
     }
 }
 
-void remap(hashmap* map) {
-    hashmap* newmap = malloc(sizeof(hashmap));
-    newmap->bucket = malloc(map->capacity * 2 * sizeof(Node*));
-    newmap->size = 0;
-    newmap->capacity = map->capacity * 2;
+void remap(Hashmap* map) {
+    Hashmap* new_map = malloc(sizeof(Hashmap));
+    if (new_map == NULL) {
+        err_n_die("Memory allocation failed while creating map.");
+    }
+    new_map->bucket = malloc(map->capacity * 2 * sizeof(HashmapNode*));
+    if (new_map->bucket == NULL) {
+        err_n_die("Memory allocation failed while creating bucket.");
+    }
+    new_map->size = 0;
+    new_map->capacity = map->capacity * 2;
     for (int i = 0; i < map->capacity; i++) {
-        Node* current = map->bucket[i];
+        HashmapNode* current = map->bucket[i];
         while (current != NULL) {
-            hashmap_insert(newmap, current->key, current->value);
+            hashmap_insert(new_map, current->key, current->value);
             free(current->key);
             free(current->value);
-            Node* temp = current->next;
+            HashmapNode* temp = current->next;
             free(current);
             current = temp;
         }
     }
     free(map->bucket);
-    *map = *newmap;
-    free(newmap);
+    *map = *new_map;
+    free(new_map);
 }
 
 unsigned int find_hash(const char* key, unsigned int capacity) {
@@ -89,9 +111,9 @@ unsigned int find_hash(const char* key, unsigned int capacity) {
     return sum % capacity;
 }
 
-void hashmap_print(hashmap* map) {
+void hashmap_print(Hashmap* map) {
     for (int i = 0; i < map->capacity; i++) {
-        Node* current = map->bucket[i];
+        HashmapNode* current = map->bucket[i];
         while (current != NULL) {
             printf("%s:%s ", current->key, current->value);
             current = current->next;
@@ -100,13 +122,13 @@ void hashmap_print(hashmap* map) {
     }
 }
 
-const char* hashmap_get(hashmap* map, const char* key) {
+const char* hashmap_get(Hashmap* map, const char* key) {
     if (map == NULL) {
         return NULL;
     }
     const unsigned int position = find_hash(key, map->capacity);
 
-    Node* current = map->bucket[position];
+    HashmapNode* current = map->bucket[position];
     while (current != NULL) {
         if (!strcmp(current->key, key)) {
             return current->value;
@@ -116,14 +138,14 @@ const char* hashmap_get(hashmap* map, const char* key) {
     return NULL;
 }
 
-void hashmap_remove(hashmap* map, const char* key) {
+void hashmap_remove(Hashmap* map, const char* key) {
     if (map == NULL) {
         return;
     }
     const unsigned int position = find_hash(key, map->capacity);
 
-    Node* current = map->bucket[position];
-    Node* previous = NULL;
+    HashmapNode* current = map->bucket[position];
+    HashmapNode* previous = NULL;
 
     while (current != NULL) {
         if (!strcmp(current->key, key)) {
@@ -142,16 +164,16 @@ void hashmap_remove(hashmap* map, const char* key) {
     }
 }
 
-void hashmap_destroy(hashmap* map) {
+void hashmap_destroy(Hashmap* map) {
     if (map == NULL) {
         return;
     }
     for (int i = 0; i < map->capacity; i++) {
-        Node* current = map->bucket[i];
+        HashmapNode* current = map->bucket[i];
         while (current != NULL) {
             free(current->key);
             free(current->value);
-            Node* temp = current->next;
+            HashmapNode* temp = current->next;
             free(current);
             current = temp;
         }

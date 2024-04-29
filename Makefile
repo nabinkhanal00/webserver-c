@@ -7,26 +7,19 @@ CFLAGS = -Wall -Wextra -std=c99
 # Include directories
 INCLUDES = -I./include
 
-# Source files for client and server
-CLIENT_SRCS = client.c common.c
-SERVER_SRCS = server.c queue.c common.c
+SERVER_SRCS = server_test.c server.c hashmap.c request.c response.c queue.c common.c
 
 # Object files for client and server
-CLIENT_OBJS = $(CLIENT_SRCS:%.c=obj/%.o)
 SERVER_OBJS = $(SERVER_SRCS:%.c=obj/%.o)
 
 # Executable names
-CLIENT_TARGET = bin/client
 SERVER_TARGET = bin/server
 
 # Phony targets
-.PHONY: all client server clean
+.PHONY: all server clean
 
 # Default target
-all: client server
-
-# Compile the source files into object files for client
-client: $(CLIENT_TARGET)
+all: server
 
 # Compile the source files into object files for server
 server: $(SERVER_TARGET)
@@ -36,9 +29,6 @@ obj/%.o: %.c | obj
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 # Link the object files into the executables
-$(CLIENT_TARGET): $(CLIENT_OBJS) | bin
-	$(CC) $(CLIENT_OBJS) -o $(CLIENT_TARGET)
-
 $(SERVER_TARGET): $(SERVER_OBJS) | bin
 	$(CC) $(SERVER_OBJS) -o $(SERVER_TARGET)
 
