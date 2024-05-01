@@ -17,12 +17,17 @@ Request* request_create(const char* request_data) {
 
     req = malloc(sizeof(Request));
     req->headers = hashmap_create();
-    data = strdup(request_data);
+
+    data = malloc(strlen(request_data));
+    strcpy(data, request_data);
+
     char* info_end = strstr(data, "\r\n");
+
     char* header_end = strstr(data, "\r\n\r\n");
     if (header_end == NULL || info_end == NULL) {
         return NULL;
     }
+
     header = info_end + 2;
     *header_end = '\0';
     body = header_end + 4;
@@ -52,6 +57,7 @@ Request* request_create(const char* request_data) {
     if (token == NULL) {
         err_n_die("Version token found to be null");
     }
+
     char* version = malloc(strlen(token));
     strcpy(version, token);
     req->version = version;
@@ -63,6 +69,7 @@ Request* request_create(const char* request_data) {
         hashmap_insert(req->headers, trim(line), trim(header_end + 1));
         line = strtok(NULL, "\r\n");
     }
+
     free(data);
 
     return req;

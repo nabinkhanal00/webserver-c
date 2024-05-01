@@ -1,0 +1,1 @@
+- make a hashmap for handlers with function pointers to the function provided by the user

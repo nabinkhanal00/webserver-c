@@ -1,4 +1,10 @@
 
+#include <netinet/tcp.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+
+#include "hashmap.h"
+#include "request.h"
 #include "response.h"
 #include "server.h"
 
@@ -38,6 +44,12 @@ Server* server_create(ServerConfig* sc) {
         err_n_die("error while creating a socket");
     }
 
+    int flag = 1;
+    int result =
+        setsockopt(s->listenfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
+    if (result < 0) {
+        err_n_die("couldnot disable nagle algorithm");
+    }
     serveaddr.sin_family = AF_INET;
     // host to network byte long
     if (sc->listen_port) {
@@ -57,7 +69,7 @@ Server* server_create(ServerConfig* sc) {
 
     struct in_addr addr;
     if (sc->listen_addr != NULL) {
-        if (inet_aton(sc->listen_addr, &addr) == 0) {
+        if (inet_pton(AF_INET, sc->listen_addr, &addr) == 0) {
             err_n_die("invalid ip address: %s\n", sc->listen_addr);
         }
     } else {
@@ -109,6 +121,13 @@ int server_listen(Server* s) {
         if (connfd == -1) {
             err_n_die("got invalid connid");
         }
+
+        int flag = 1;
+        int result =
+            setsockopt(connfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
+        if (result < 0) {
+            err_n_die("couldnot disable nagle algorithm");
+        }
         inet_ntop(AF_INET, &addr, address, MAXLINE);
         fprintf(stdout, "Connected to: %s\n", address);
         if (pthread_mutex_lock(&s->queue_lock) < 0) {
@@ -145,27 +164,59 @@ void* server_worker(void* args) {
     return NULL;
 }
 
-void handle_connection(Server* s, int connfd) {
+void handle_connection(Server* _, int connfd) {
     uint8_t buff[MAXLINE];
     uint8_t recvline[MAXLINE];
     int n;
 
     memset(recvline, 0, sizeof(recvline));
 
+    char* request_data = malloc(MAXLINE);
+    unsigned int received = 0;
+    unsigned int size = MAXLINE;
+    memset(request_data, 0, MAXLINE);
+
+    fflush(stdout);
     while ((n = read(connfd, recvline, MAXLINE)) > 0) {
-        const char* data = bin2hex(recvline, n);
-        fprintf(stdout, "\n%s\n\n%s", data, recvline);
-        free((void*)data);
+        printf("%d\n", n);
+        if (size - received - n <= 0) {
+            request_data = realloc(request_data, 2 * size);
+            size *= 2;
+        }
+        memcpy(request_data + received, recvline, n);
+        received += n;
         if (recvline[n - 1] == '\n') {
+            request_data[received] = '\0';
+            // Request* r = request_create(request_data);
+            printf("%s\n", request_data);
+            snprintf(
+                (char*)buff, sizeof(buff),
+                "HTTP/1.1 200 OK\r\n"
+                "\r\n"
+                "<html>"
+                "<head>"
+                "<title>Web Server in C</title>"
+                "<link rel=\"stylesheet\" href=\"index.css\"/>"
+                "</head>"
+                "<body>"
+                "Hello World"
+                "</body>"
+                "</html>\r\n");
+            write(connfd, (char*)buff, strlen((char*)buff));
+
+            free(request_data);
+            request_data = malloc(MAXLINE);
+            memset(request_data, 0, MAXLINE);
+            received = 0;
+            size = MAXLINE;
             break;
         }
         memset(recvline, 0, sizeof(recvline));
     }
+    free(request_data);
     if (n < 0) {
         err_n_die("read error");
     }
 
-    snprintf((char*)buff, sizeof(buff), "HTTP/1.0 200 OK\r\n\r\nHello");
-    write(connfd, (char*)buff, strlen((char*)buff));
     close(connfd);
 }

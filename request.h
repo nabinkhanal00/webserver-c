@@ -16,5 +16,5 @@ typedef struct Request {
 
 } Request;
 
-Request* request_create(const char* );
+Request* request_create(const char*);
 #endif
