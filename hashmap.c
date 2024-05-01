@@ -26,17 +26,20 @@ Hashmap* hashmap_create(unsigned int element_size) {
 void hashmap_insert(Hashmap* map, const char* key, void* value) {
     unsigned int position = find_hash(key, map->capacity);
     char* k = malloc(strlen(key));
+    strcpy(k, key);
     void* v;
-    if (map->element_size == 0) {
+    if (map->element_size == -1) {
+        v = value;
+    } else if (map->element_size == 0) {
         v = malloc(strlen(value));
+        strcpy(v, value);
     } else {
         v = malloc(map->element_size);
+        memcpy(v, value, map->element_size);
     }
     if (k == NULL || v == NULL) {
         err_n_die("Memory allocation failed while copying key and value.");
     }
-    strcpy(v, value);
-    strcpy(k, key);
 
     HashmapNode* current = map->bucket[position];
     if (current == NULL) {

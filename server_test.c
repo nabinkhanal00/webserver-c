@@ -1,11 +1,19 @@
-#include "request.h"
-#include "response.h"
 #include "server.h"
 
 void handle_hello(Request* re, Response* rs) {
-    printf("I am inside the handler");
-    fflush(stdout);
-    response_write(rs, "hello world");
+    response_write(
+        rs,
+        "HTTP/1.1 200 OK\r\n"
+        "\r\n"
+        "<!DOCTYPE html>"
+        "<html>"
+        "<head>"
+        "<title>Web Server in C</title>"
+        "</head>"
+        "<body>"
+        "Hello World"
+        "</body>"
+        "</html>\r\n");
 }
 int main() {
     ServerConfig sc;
@@ -14,7 +22,6 @@ int main() {
 
     Server* s = server_create(&sc);
 
-    printf("the address of the handler is %p\n", handle_hello);
     server_handle(s, GET, "/", handle_hello);
     server_listen(s);
 }

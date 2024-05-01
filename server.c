@@ -1,4 +1,3 @@
-
 #include <netinet/tcp.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -84,7 +83,7 @@ Server* server_create(ServerConfig* sc) {
     }
 
     s->connection_queue = queue_create();
-    s->handler_map = hashmap_create(sizeof(void (*)(Request*, Response*)));
+    s->handler_map = hashmap_create(-1);
     s->serveaddr = malloc(sizeof(serveaddr));
     memcpy(s->serveaddr, &serveaddr, sizeof(serveaddr));
 
@@ -168,7 +167,6 @@ void* server_worker(void* args) {
 }
 
 void handle_connection(Server* s, int connfd) {
-    printf("Connection id is %d\n", connfd);
     uint8_t recvline[MAXLINE];
     int n;
 
@@ -193,20 +191,6 @@ void handle_connection(Server* s, int connfd) {
             handle_request(s, re, rs);
             response_destroy(rs);
             request_destroy(re);
-            // snprintf(
-            //     (char*)buff, sizeof(buff),
-            //     "HTTP/1.1 200 OK\r\n"
-            //     "\r\n"
-            //     "<html>"
-            //     "<head>"
-            //     "<title>Web Server in C</title>"
-            //     "</head>"
-            //     "<body>"
-            //     "Hello World"
-            //     "</body>"
-            //     "</html>\r\n");
-            // write(connfd, (char*)buff, strlen((char*)buff));
-
             free(request_data);
             request_data = malloc(MAXLINE);
             memset(request_data, 0, MAXLINE);
@@ -232,16 +216,12 @@ void handle_request(Server* s, Request* re, Response* rs) {
     strcpy(mkey + strlen(method), " ");
     strcpy(mkey + strlen(method) + 1, re->url);
     mkey[length - 1] = '\0';
-    printf("Key is: %s\n", mkey);
-    hashmap_print(s->handler_map);
-    fflush(stdout);
     Handler handler = hashmap_get(s->handler_map, mkey);
     free(mkey);
     if (handler == NULL) {
         printf("handler not found\n");
         return;
     }
-    printf("Handler is %p\n", handler);
     handler(re, rs);
 }
 void server_handle(Server* s, Method m, Path p, Handler h) {
