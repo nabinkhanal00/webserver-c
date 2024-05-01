@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "common.h"
+#include "hashmap.h"
 #include "request.h"
 
 char* trim(char*);
@@ -16,7 +17,7 @@ Request* request_create(const char* request_data) {
     char* data;
 
     req = malloc(sizeof(Request));
-    req->headers = hashmap_create();
+    req->headers = hashmap_create(0);
 
     data = malloc(strlen(request_data));
     strcpy(data, request_data);
@@ -66,7 +67,9 @@ Request* request_create(const char* request_data) {
     while (line != NULL) {
         char* header_end = strstr(line, ":");
         *header_end = 0;
-        hashmap_insert(req->headers, trim(line), trim(header_end + 1));
+        char* key = trim(line);
+        char* value = trim(header_end + 1);
+        hashmap_insert(req->headers, key, value);
         line = strtok(NULL, "\r\n");
     }
 
@@ -75,18 +78,37 @@ Request* request_create(const char* request_data) {
     return req;
 }
 
+char* method_to_string(Method m) {
+    switch ((int)m) {
+        case 0:
+            return "GET";
+        case 1:
+            return "POST";
+        case 2:
+            return "PUT";
+        case 3:
+            return "PATCH";
+        case 4:
+            return "DELETE";
+        case 5:
+            return "OPTION";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 Method string_to_method(char* input) {
-    if (strcmp(input, "GET")) {
+    if (strcmp(input, "GET") == 0) {
         return GET;
-    } else if (strcmp(input, "POST")) {
+    } else if (strcmp(input, "POST") == 0) {
         return POST;
-    } else if (strcmp(input, "PUT")) {
+    } else if (strcmp(input, "PUT") == 0) {
         return PUT;
-    } else if (strcmp(input, "PATCH")) {
+    } else if (strcmp(input, "PATCH") == 0) {
         return PATCH;
-    } else if (strcmp(input, "DELETE")) {
+    } else if (strcmp(input, "DELETE") == 0) {
         return DELETE;
-    } else if (strcmp(input, "OPTION")) {
+    } else if (strcmp(input, "OPTION") == 0) {
         return OPTION;
     } else {
         return UNKNOWN;
@@ -113,4 +135,12 @@ char* trim(char* str) {
     *(end + 1) = '\0';
 
     return str;
+}
+
+void request_destroy(Request* re) {
+    hashmap_destroy(re->headers);
+    free((void*)re->url);
+    free((void*)re->body);
+    free((void*)re->version);
+    free(re);
 }

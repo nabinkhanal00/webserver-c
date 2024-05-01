@@ -1,11 +1,14 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <pthread.h>
 
+#include "hashmap.h"
 #include "queue.h"
+#include "request.h"
+#include "response.h"
 
 #define MAXLINE 4096
 #define MAX_CONNECTIONS 1024
@@ -18,6 +21,7 @@ typedef struct Server {
     Queue *connection_queue;
     int no_of_threads;
     struct sockaddr_in *serveaddr;
+    Hashmap *handler_map;
     pthread_t *handler_threads;
 } Server;
 
@@ -26,7 +30,9 @@ typedef struct ServerConfig {
     unsigned int listen_port;
 } ServerConfig;
 
-
+typedef char *Path;
+typedef void (*Handler)(Request *, Response *);
 Server *server_create(ServerConfig *);
 int server_listen(Server *);
+void server_handle(Server *, Method, Path, Handler);
 #endif

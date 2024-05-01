@@ -8,8 +8,9 @@
 void remap(Hashmap*);
 unsigned int find_hash(const char*, unsigned int);
 
-Hashmap* hashmap_create() {
+Hashmap* hashmap_create(unsigned int element_size) {
     Hashmap* map = malloc(sizeof(Hashmap));
+    map->element_size = element_size;
     if (map == NULL) {
         err_n_die("Memory allocation failed while creating map.");
     }
@@ -22,10 +23,15 @@ Hashmap* hashmap_create() {
     return map;
 }
 
-void hashmap_insert(Hashmap* map, const char* key, const char* value) {
+void hashmap_insert(Hashmap* map, const char* key, void* value) {
     unsigned int position = find_hash(key, map->capacity);
     char* k = malloc(strlen(key));
-    char* v = malloc(strlen(value));
+    void* v;
+    if (map->element_size == 0) {
+        v = malloc(strlen(value));
+    } else {
+        v = malloc(map->element_size);
+    }
     if (k == NULL || v == NULL) {
         err_n_die("Memory allocation failed while copying key and value.");
     }
@@ -87,7 +93,7 @@ void remap(Hashmap* map) {
     }
     new_map->size = 0;
     new_map->capacity = map->capacity * 2;
-    for (int i = 0; i < map->capacity; i++) {
+    for (unsigned int i = 0; i < map->capacity; i++) {
         HashmapNode* current = map->bucket[i];
         while (current != NULL) {
             hashmap_insert(new_map, current->key, current->value);
@@ -105,24 +111,31 @@ void remap(Hashmap* map) {
 
 unsigned int find_hash(const char* key, unsigned int capacity) {
     unsigned int sum = 0;
-    for (int i = 0; i < strlen(key); i++) {
+    for (size_t i = 0; i < strlen(key); i++) {
         sum += key[i];
     }
     return sum % capacity;
 }
 
 void hashmap_print(Hashmap* map) {
-    for (int i = 0; i < map->capacity; i++) {
+    for (unsigned int i = 0; i < map->capacity; i++) {
         HashmapNode* current = map->bucket[i];
-        while (current != NULL) {
-            printf("%s:%s ", current->key, current->value);
-            current = current->next;
+        if (map->element_size == 0) {
+            while (current != NULL) {
+                printf("%s:%s ", current->key, (char*)current->value);
+                current = current->next;
+            }
+        } else {
+            while (current != NULL) {
+                printf("%s:%p ", current->key, current->value);
+                current = current->next;
+            }
         }
         printf("\n");
     }
 }
 
-const char* hashmap_get(Hashmap* map, const char* key) {
+void* hashmap_get(Hashmap* map, const char* key) {
     if (map == NULL) {
         return NULL;
     }
@@ -168,7 +181,7 @@ void hashmap_destroy(Hashmap* map) {
     if (map == NULL) {
         return;
     }
-    for (int i = 0; i < map->capacity; i++) {
+    for (unsigned int i = 0; i < map->capacity; i++) {
         HashmapNode* current = map->bucket[i];
         while (current != NULL) {
             free(current->key);

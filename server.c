@@ -10,6 +10,8 @@
 
 void* server_worker(void*);
 void handle_connection(Server*, int);
+void handle_request(Server*, Request*, Response*);
+
 unsigned int find_empty_port(unsigned int start_port) {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
@@ -82,6 +84,7 @@ Server* server_create(ServerConfig* sc) {
     }
 
     s->connection_queue = queue_create();
+    s->handler_map = hashmap_create(sizeof(void (*)(Request*, Response*)));
     s->serveaddr = malloc(sizeof(serveaddr));
     memcpy(s->serveaddr, &serveaddr, sizeof(serveaddr));
 
@@ -164,8 +167,8 @@ void* server_worker(void* args) {
     return NULL;
 }
 
-void handle_connection(Server* _, int connfd) {
-    uint8_t buff[MAXLINE];
+void handle_connection(Server* s, int connfd) {
+    printf("Connection id is %d\n", connfd);
     uint8_t recvline[MAXLINE];
     int n;
 
@@ -176,9 +179,7 @@ void handle_connection(Server* _, int connfd) {
     unsigned int size = MAXLINE;
     memset(request_data, 0, MAXLINE);
 
-    fflush(stdout);
     while ((n = read(connfd, recvline, MAXLINE)) > 0) {
-        printf("%d\n", n);
         if (size - received - n <= 0) {
             request_data = realloc(request_data, 2 * size);
             size *= 2;
@@ -187,22 +188,24 @@ void handle_connection(Server* _, int connfd) {
         received += n;
         if (recvline[n - 1] == '\n') {
             request_data[received] = '\0';
-            // Request* r = request_create(request_data);
-            printf("%s\n", request_data);
-            snprintf(
-                (char*)buff, sizeof(buff),
-                "HTTP/1.1 200 OK\r\n"
-                "\r\n"
-                "<html>"
-                "<head>"
-                "<title>Web Server in C</title>"
-                "<link rel=\"stylesheet\" href=\"index.css\"/>"
-                "</head>"
-                "<body>"
-                "Hello World"
-                "</body>"
-                "</html>\r\n");
-            write(connfd, (char*)buff, strlen((char*)buff));
+            Request* re = request_create(request_data);
+            Response* rs = response_create(connfd);
+            handle_request(s, re, rs);
+            response_destroy(rs);
+            request_destroy(re);
+            // snprintf(
+            //     (char*)buff, sizeof(buff),
+            //     "HTTP/1.1 200 OK\r\n"
+            //     "\r\n"
+            //     "<html>"
+            //     "<head>"
+            //     "<title>Web Server in C</title>"
+            //     "</head>"
+            //     "<body>"
+            //     "Hello World"
+            //     "</body>"
+            //     "</html>\r\n");
+            // write(connfd, (char*)buff, strlen((char*)buff));
 
             free(request_data);
             request_data = malloc(MAXLINE);
@@ -219,4 +222,35 @@ void handle_connection(Server* _, int connfd) {
     }
 
     close(connfd);
+}
+
+void handle_request(Server* s, Request* re, Response* rs) {
+    char* method = method_to_string(re->method);
+    unsigned int length = strlen(method) + 1 + strlen(re->url) + 1;
+    char* mkey = malloc(length);
+    strcpy(mkey, method);
+    strcpy(mkey + strlen(method), " ");
+    strcpy(mkey + strlen(method) + 1, re->url);
+    mkey[length - 1] = '\0';
+    printf("Key is: %s\n", mkey);
+    hashmap_print(s->handler_map);
+    fflush(stdout);
+    Handler handler = hashmap_get(s->handler_map, mkey);
+    free(mkey);
+    if (handler == NULL) {
+        printf("handler not found\n");
+        return;
+    }
+    printf("Handler is %p\n", handler);
+    handler(re, rs);
+}
+void server_handle(Server* s, Method m, Path p, Handler h) {
+    char* method = method_to_string(m);
+    unsigned int length = strlen(method) + 1 + strlen(p) + 1;
+    char* mkey = malloc(length);
+    strcpy(mkey, method);
+    strcpy(mkey + strlen(method), " ");
+    strcpy(mkey + strlen(method) + 1, p);
+    mkey[length - 1] = '\0';
+    hashmap_insert(s->handler_map, mkey, h);
 }

@@ -6,6 +6,7 @@
 typedef enum Method { GET, POST, PUT, PATCH, DELETE, OPTION, UNKNOWN } Method;
 
 Method string_to_method(char*);
+char* method_to_string(Method);
 
 typedef struct Request {
     enum Method method;
@@ -17,4 +18,5 @@ typedef struct Request {
 } Request;
 
 Request* request_create(const char*);
+void request_destroy(Request*);
 #endif
