@@ -1,2 +1,6 @@
 bin/
 obj/
+queue_test.c
+hashmap_test.c
+request_test.c
+response_test.c

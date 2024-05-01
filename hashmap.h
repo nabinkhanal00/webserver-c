@@ -13,6 +13,11 @@ typedef struct HashmapNode{
 typedef struct Hashmap {
     unsigned int capacity;
     unsigned int size;
+
+    // represents different types of elements
+    // -1 for function pointers
+    // 0 for const char* or char*
+    // <size of the element> using function (sizeof) for any other elements
     int element_size;
     struct HashmapNode** bucket;
 } Hashmap;

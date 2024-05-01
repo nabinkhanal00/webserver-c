@@ -15,6 +15,14 @@ void handle_hello(Request* re, Response* rs) {
         "</body>"
         "</html>\r\n");
 }
+
+void handle_hi(Request* re, Response* rs) {
+    response_write(
+        rs,
+        "HTTP/1.1 200 OK\r\n"
+        "\r\n"
+        "HI\n");
+}
 int main() {
     ServerConfig sc;
     sc.listen_addr = "127.0.0.1";
@@ -23,5 +31,6 @@ int main() {
     Server* s = server_create(&sc);
 
     server_handle(s, GET, "/", handle_hello);
+    server_handle(s, GET, "/hi", handle_hi);
     server_listen(s);
 }
